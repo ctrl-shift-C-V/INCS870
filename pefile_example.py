@@ -82,17 +82,9 @@ def process_pe_file(file_path, all_pe_data):
             "Optional_Header": optional_header_dict,
             "Section_Headers": section_headers
         }
-
-        # Convert the combined dictionary to JSON
         pe_headers_json = json.dumps(pe_headers_dict, indent=4)
 
-        # # Print the combined JSON formatted headers
-        # print(pe_headers_json)
-
         all_pe_data.append(pe_headers_dict)
-
-        # with open('output.json', 'w') as json_file:
-        #     json.dump(pe_headers_json, json_file, indent=4)
 
     except Exception as e:
         print(f"[PE] Error processing file {file_path}: {e}")
@@ -105,9 +97,6 @@ def process_elf_file(file_path, all_elf_data):
             elf = ELFFile(f)
 
             file_name = os.path.splitext(os.path.basename(file_path))[0]
-            # # Extract ELF header
-            # print(f"\n[ELF] Processing file: {file_path}")
-            # print("[ELF] ELF Header: ", elffile.header)
 
             elf_header_dict = {
                 "EI_CLASS": elf.header['e_ident']['EI_CLASS'],
@@ -169,15 +158,7 @@ def process_elf_file(file_path, all_elf_data):
                 "Section_Headers": section_headers
             }
 
-            # Convert the combined dictionary to JSON
-            # elf_headers_json = json.dumps(elf_headers_dict, indent=4)
-
-            # Print the combined JSON formatted headers
-            # print(elf_headers_json)
-
             all_elf_data.append(elf_headers_dict)
-            # with open('output.json', 'w') as json_file:
-            #     json.dump(elf_headers_json, json_file, indent=4)
 
     except Exception as e:
         print(f"[ELF] Error processing file {file_path}: {e}")
@@ -219,11 +200,5 @@ def collect_malware_files(directory):
 
 malware_directory = "/Users/boyuan/Documents/NYIT/Project870/malware"
 malware_files = collect_malware_files(malware_directory)
-
-# Example usage
-# malware_files = [
-#     "/Users/boyuan/Documents/NYIT/Project870/malware/2024-09-14/fd3edfaff77dd969e3e0d086495e4c742d00e111df9f935ed61dfba8392584b2.exe",
-#     "/Users/boyuan/Documents/NYIT/Project870/malware/2024-09-14/f984588a38f4525e3ef37312c1477872121309cf5488de49a12115e3f6667338.elf"
-# ]
 
 process_files(malware_files)
