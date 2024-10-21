@@ -1,15 +1,17 @@
 import capstone
 import json
+import os
 import pefile
 from elftools.elf.elffile import ELFFile
 
 # Function to extract PE headers and disassemble code sections
-def process_pe_file(file_path):
+def process_pe_file(file_path, all_pe_data):
     try:
         pe = pefile.PE(file_path)
 
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+
         # Extract raw header
-        print(f"\n[PE] Processing file: {file_path}")
         dos_header_dict = {
             "e_magic": hex(pe.DOS_HEADER.e_magic),
             "e_cblp": hex(pe.DOS_HEADER.e_cblp),
@@ -60,35 +62,41 @@ def process_pe_file(file_path):
             "NumberOfRvaAndSizes": pe.OPTIONAL_HEADER.NumberOfRvaAndSizes
         }
 
+         # Extract Section headers
+        section_headers = []
+        for section in pe.sections:
+            section_data = {
+                "Name": section.Name.decode('utf-8').strip('\x00'),
+                "VirtualAddress": hex(section.VirtualAddress),
+                "SizeOfRawData": hex(section.SizeOfRawData),
+                "PointerToRawData": hex(section.PointerToRawData),
+                "Characteristics": hex(section.Characteristics)
+            }
+            section_headers.append(section_data)
+
         # Combine all headers into one dictionary
         pe_headers_dict = {
+            "File_Hash": file_name,
             "DOS_Header": dos_header_dict,
             "NT_Header": nt_header_dict,
-            "Optional_Header": optional_header_dict
+            "Optional_Header": optional_header_dict,
+            "Section_Headers": section_headers
         }
-
-        # Convert the combined dictionary to JSON
         pe_headers_json = json.dumps(pe_headers_dict, indent=4)
 
-        # Print the combined JSON formatted headers
-        print(pe_headers_json)
-
-        with open('output.json', 'w') as json_file:
-            json.dump(pe_headers_json, json_file, indent=4)
+        all_pe_data.append(pe_headers_dict)
 
     except Exception as e:
         print(f"[PE] Error processing file {file_path}: {e}")
 
 
 # Function to extract ELF headers and disassemble code sections
-def process_elf_file(file_path):
+def process_elf_file(file_path, all_elf_data):
     try:
         with open(file_path, 'rb') as f:
             elf = ELFFile(f)
 
-            # # Extract ELF header
-            print(f"\n[ELF] Processing file: {file_path}")
-            # print("[ELF] ELF Header: ", elffile.header)
+            file_name = os.path.splitext(os.path.basename(file_path))[0]
 
             elf_header_dict = {
                 "EI_CLASS": elf.header['e_ident']['EI_CLASS'],
@@ -144,19 +152,13 @@ def process_elf_file(file_path):
 
             # Combine all headers into one dictionary
             elf_headers_dict = {
+                "ELF_Hash": file_name,
                 "ELF_Header": elf_header_dict,
                 "Program_Headers": program_headers,
                 "Section_Headers": section_headers
             }
 
-            # Convert the combined dictionary to JSON
-            elf_headers_json = json.dumps(elf_headers_dict, indent=4)
-
-            # Print the combined JSON formatted headers
-            print(elf_headers_json)
-
-            with open('output.json', 'w') as json_file:
-                json.dump(elf_headers_json, json_file, indent=4)
+            all_elf_data.append(elf_headers_dict)
 
     except Exception as e:
         print(f"[ELF] Error processing file {file_path}: {e}")
@@ -164,20 +166,39 @@ def process_elf_file(file_path):
 
 # Process a list of malware files
 def process_files(file_list):
+    all_pe_data = []
+    all_elf_data = []
     for file_path in file_list:
         if file_path.endswith(".exe"):
-            process_pe_file(file_path)
+            process_pe_file(file_path, all_pe_data)
         elif file_path.endswith(".elf"):
-            process_elf_file(file_path)
-            # pass
+            process_elf_file(file_path, all_elf_data)
         else:
             print(f"Unknown file format: {file_path}")
+    with open("pe_headers", 'w') as json_file:
+        json.dump(all_pe_data, json_file, indent=4)
+
+    with open('elf_headers', 'w') as json_file:
+                json.dump(all_elf_data, json_file, indent=4)
 
 
-# Example usage
-malware_files = [
-    "/Users/boyuan/Documents/NYIT/Project870/malware/2024-09-14/fd3edfaff77dd969e3e0d086495e4c742d00e111df9f935ed61dfba8392584b2.exe",
-    "/Users/boyuan/Documents/NYIT/Project870/malware/2024-09-14/f984588a38f4525e3ef37312c1477872121309cf5488de49a12115e3f6667338.elf"
-]
+def collect_malware_files(directory):
+    # List to hold the full file paths for PE and ELF files
+    malware_files = []
+
+    # Walk through the directory and all subdirectories
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            # Check if the file is a PE or ELF file based on extension
+            if file.endswith(".exe") or file.endswith(".elf"):
+                # Get the full path of the file
+                full_path = os.path.join(root, file)
+                malware_files.append(full_path)
+
+    return malware_files
+
+
+malware_directory = "/Users/boyuan/Documents/NYIT/Project870/malware"
+malware_files = collect_malware_files(malware_directory)
 
 process_files(malware_files)
