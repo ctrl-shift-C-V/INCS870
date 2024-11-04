@@ -3,6 +3,8 @@ import json
 import os
 import pefile
 from elftools.elf.elffile import ELFFile
+from pathlib import Path
+
 
 # Function to extract PE headers and disassemble code sections
 def process_pe_file(file_path, all_pe_data):
@@ -165,7 +167,7 @@ def process_elf_file(file_path, all_elf_data):
 
 
 # Process a list of malware files
-def process_files(file_list):
+def process_files(file_list, filetype):
     all_pe_data = []
     all_elf_data = []
     for file_path in file_list:
@@ -175,14 +177,14 @@ def process_files(file_list):
             process_elf_file(file_path, all_elf_data)
         else:
             print(f"Unknown file format: {file_path}")
-    with open("pe_headers", 'w') as json_file:
+    with open(current_dir.parent / "result" / filetype/ "pe_headers", 'w') as json_file:
         json.dump(all_pe_data, json_file, indent=4)
 
-    with open('elf_headers', 'w') as json_file:
+    with open(current_dir.parent / "result" / filetype/ "elf_headers", 'w') as json_file:
                 json.dump(all_elf_data, json_file, indent=4)
 
 
-def collect_malware_files(directory):
+def collect_files(directory):
     # List to hold the full file paths for PE and ELF files
     malware_files = []
 
@@ -197,8 +199,13 @@ def collect_malware_files(directory):
 
     return malware_files
 
+current_dir = Path(__file__)
+malware_directory = current_dir.parent / "Malware"
+benign_directory = current_dir.parent / "Benign"
+# print(malware_directory)
+malware_files = collect_files(malware_directory)
+benign_files = collect_files(benign_directory)
 
-malware_directory = "/Users/boyuan/Documents/NYIT/Project870/malware"
-malware_files = collect_malware_files(malware_directory)
-
-process_files(malware_files)
+# print(benign_directory)
+process_files(malware_files, "Malware")
+process_files(benign_files, "Benign")
