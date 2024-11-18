@@ -43,6 +43,9 @@ conditional_jumps['metapc'] = [ \
     "jg", "jge", "jl", "jle", "jp", "jnp", "jo", "jno", "js", "jns" \
 ]
 
+# .NET
+conditional_jumps['cli'] = [ 'brtrue.s', 'brfalse.s']
+
 # MIPS cpu
 conditional_jumps['mipsb']= ["beq", "beqz", "bne", "bnez", "bnz", "bgez", "bgtz", "blez", "bltz"]
 conditional_jumps['mipsl']=conditional_jumps['mipsb']
@@ -62,8 +65,9 @@ def is_conditional_jump(ea):
     return (mnemonic in conditional_jumps[cpu_arch])
 
 unconditional_jumps= {}
-unconditional_jumps['metapc']= {"jmp", "ljmp"}
-unconditional_jumps['arm'] = {"b", "bx", "bl", "blx"}
+unconditional_jumps['metapc']= ["jmp", "ljmp"]
+unconditional_jumps['cli']= ["br.s"]
+unconditional_jumps['arm'] = ["b", "bx", "bl", "blx"]
 unconditional_jumps['armb'] = unconditional_jumps['arm']
 unconditional_jumps['arml']=unconditional_jumps['arm']
 unconditional_jumps['mipsb']  = {"b", "j", "jr", "jal"}
@@ -80,6 +84,7 @@ def is_unconditional_jump(ea):
 
 func_returns={}
 func_returns["metapc"]=["ret", "retn", "hlt"]
+func_returns["cli"]=["ret"]
 func_returns["arm"]=["ldmfd"]
 func_returns["mipsb"] = ["jr"]
 func_returns["mipsl"] = func_returns["mipsb"]
@@ -199,7 +204,6 @@ def ana_func(ea):
         for head in Heads(bloc.start_ea, bloc.end_ea):
             # Get disassembled instruction
             disasm=idc.generate_disasm_line(head, 0)
-            #fd.write(disasm+"\n")
             instrs.append(disasm)
     
     # save blocks
